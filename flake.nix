@@ -30,39 +30,61 @@
             inherit (platformInfo) sha256;
           };
 
-          # Linux: patch ELF interpreter + rpath, add libstdc++ (Node.js SEA binary)
-          kimi-code-linux = pkgs.stdenv.mkDerivation {
-            pname = "kimi-code";
-            inherit version src;
+          # Linux: patch the ELF interpreter to point to the Nix glibc, then
+          # wrap with LD_LIBRARY_PATH for libstdc++ and other runtime deps.
+          # We use patchelf --set-interpreter only (NOT --set-rpath) to avoid
+          # corrupting the binary's internal data sections.
+          kimi-code-linux =
+            let
+              libPath = pkgs.lib.makeLibraryPath [
+                pkgs.stdenv.cc.cc.lib  # libstdc++.so.6, libgcc_s.so.1
+                pkgs.glibc             # libc.so.6, libdl.so.2, libm.so.6, libpthread.so.0
+              ];
+              dynlinker = "${pkgs.glibc}/lib/ld-linux-x86-64.so.2";
+            in
+            pkgs.stdenv.mkDerivation {
+              pname = "kimi-code";
+              inherit version src;
 
-            nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+              nativeBuildInputs = [ pkgs.patchelf pkgs.makeWrapper ];
 
-            buildInputs = [
-              pkgs.stdenv.cc.cc.lib  # libstdc++.so.6
-              pkgs.glibc              # libc, libdl, libm, libpthread
-            ];
+              dontUnpack = true;
+              dontBuild = true;
+              dontConfigure = true;
+              # Do NOT strip the binary — it is a Node.js Single Executable
+              # Application whose bundled JS blob lives in custom ELF sections.
+              # Stripping removes those sections and causes a segfault at startup.
+              dontStrip = true;
 
-            dontUnpack = true;
-            dontBuild = true;
-            dontConfigure = true;
+              installPhase = ''
+                runHook preInstall
 
-            installPhase = ''
-              runHook preInstall
+                # Copy the binary (fetchurl output is read-only in the Nix store)
+                install -Dm755 "$src" "$out/bin/.kimi-unwrapped"
+                chmod u+w "$out/bin/.kimi-unwrapped"
 
-              install -Dm755 "$src" "$out/bin/kimi"
+                # Patch only the ELF interpreter — do NOT use --set-rpath which
+                # rewrites section offsets and corrupts large Node.js SEA binaries
+                patchelf \
+                  --set-interpreter "${dynlinker}" \
+                  "$out/bin/.kimi-unwrapped"
 
-              runHook postInstall
-            '';
+                # Wrapper that adds libstdc++ etc. to LD_LIBRARY_PATH at runtime
+                makeWrapper "$out/bin/.kimi-unwrapped" "$out/bin/kimi" \
+                  --prefix LD_LIBRARY_PATH : "${libPath}"
 
-            meta = with pkgs.lib; {
-              description = "Kimi Code AI coding agent CLI (Moonshot AI)";
-              homepage    = "https://kimi.com/code";
-              license     = licenses.unfree;
-              platforms   = [ "x86_64-linux" "aarch64-linux" ];
-              mainProgram = "kimi";
-              sourceProvenance = [ sourceTypes.binaryNativeCode ];
+                runHook postInstall
+              '';
+
+              meta = with pkgs.lib; {
+                description = "Kimi Code AI coding agent CLI (Moonshot AI)";
+                homepage    = "https://kimi.com/code";
+                license     = licenses.unfree;
+                platforms   = [ "x86_64-linux" "aarch64-linux" ];
+                mainProgram = "kimi";
+                sourceProvenance = [ sourceTypes.binaryNativeCode ];
+              };
             };
-          };
 
           # macOS: pre-built Mach-O binary, no patching needed
           kimi-code-darwin = pkgs.stdenv.mkDerivation {
@@ -72,6 +94,7 @@
             dontUnpack = true;
             dontBuild = true;
             dontConfigure = true;
+            dontStrip = true;
 
             installPhase = ''
               runHook preInstall
