@@ -8,14 +8,14 @@ using the official pre-built binaries from Moonshot AI.
 ### `nix run` (try it instantly)
 
 ```bash
-nix run github:YOUR_USER/kimi-code
+nix run github:noosxe/kimi-code
 ```
 
 ### As a NixOS / home-manager input
 
 ```nix
 # flake.nix
-inputs.kimi-code.url = "github:YOUR_USER/kimi-code";
+inputs.kimi-code.url = "github:noosxe/kimi-code";
 ```
 
 Then add the package:
@@ -29,7 +29,7 @@ home.packages = [ inputs.kimi-code.packages.${system}.default ];
 ### Install into a profile
 
 ```bash
-nix profile install github:YOUR_USER/kimi-code
+nix profile install github:noosxe/kimi-code
 ```
 
 ## Supported platforms
