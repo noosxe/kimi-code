@@ -11,7 +11,7 @@
       [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
       (system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
           version = "0.31.1";
 
