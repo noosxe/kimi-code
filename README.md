@@ -13,12 +13,30 @@ nix run github:noosxe/kimi-code
 
 ### As a NixOS / home-manager input
 
+Add to your flake inputs:
+
 ```nix
-# flake.nix
 inputs.kimi-code.url = "github:noosxe/kimi-code";
 ```
 
-Then add the package:
+#### Via the overlay (recommended)
+
+The overlay adds `kimi-code` directly into your `pkgs`, which is the most
+idiomatic way to consume it:
+
+```nix
+# NixOS (configuration.nix or a module)
+nixpkgs.overlays = [ inputs.kimi-code.overlays.default ];
+environment.systemPackages = [ pkgs.kimi-code ];
+
+# home-manager
+nixpkgs.overlays = [ inputs.kimi-code.overlays.default ];
+home.packages = [ pkgs.kimi-code ];
+```
+
+#### Via the package output directly
+
+If you prefer not to use an overlay, reference the package output:
 
 ```nix
 environment.systemPackages = [ inputs.kimi-code.packages.${system}.default ];
