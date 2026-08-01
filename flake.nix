@@ -7,6 +7,12 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
+    let
+      # Overlay is system-agnostic — defined once at the top level.
+      overlay = final: prev: {
+        kimi-code = self.packages.${final.stdenv.hostPlatform.system}.default;
+      };
+    in
     flake-utils.lib.eachSystem
       [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
       (system:
@@ -130,5 +136,9 @@
             drv = kimi-code;
             exePath = "/bin/kimi";
           };
-        });
+        })
+    # Merge per-system outputs with the system-independent overlay
+    // {
+      overlays.default = overlay;
+    };
 }
