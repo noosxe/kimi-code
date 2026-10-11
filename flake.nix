@@ -36,10 +36,8 @@
             inherit (platformInfo) sha256;
           };
 
-          # Linux: patch the ELF interpreter to point to the Nix glibc, then
-          # wrap with LD_LIBRARY_PATH for libstdc++ and other runtime deps.
-          # We use patchelf --set-interpreter only (NOT --set-rpath) to avoid
-          # corrupting the binary's internal data sections.
+          # Linux: patch the ELF interpreter to point to the Nix glibc and rpath
+          # to point to the correct library path.
           kimi-code-linux =
             let
               libPath = pkgs.lib.makeLibraryPath [
@@ -52,7 +50,7 @@
               pname = "kimi-code";
               inherit version src;
 
-              nativeBuildInputs = [ pkgs.patchelf pkgs.makeWrapper ];
+              nativeBuildInputs = [ pkgs.patchelf ];
 
               dontUnpack = true;
               dontBuild = true;
@@ -66,18 +64,14 @@
                 runHook preInstall
 
                 # Copy the binary (fetchurl output is read-only in the Nix store)
-                install -Dm755 "$src" "$out/bin/.kimi-unwrapped"
-                chmod u+w "$out/bin/.kimi-unwrapped"
+                install -Dm755 "$src" "$out/bin/kimi"
+                chmod u+w "$out/bin/kimi"
 
-                # Patch only the ELF interpreter — do NOT use --set-rpath which
-                # rewrites section offsets and corrupts large Node.js SEA binaries
+                # Patch the ELF interpreter and rpath
                 patchelf \
                   --set-interpreter "${dynlinker}" \
-                  "$out/bin/.kimi-unwrapped"
-
-                # Wrapper that adds libstdc++ etc. to LD_LIBRARY_PATH at runtime
-                makeWrapper "$out/bin/.kimi-unwrapped" "$out/bin/kimi" \
-                  --prefix LD_LIBRARY_PATH : "${libPath}"
+                  --set-rpath "${libPath}" \
+                  "$out/bin/kimi"
 
                 runHook postInstall
               '';
