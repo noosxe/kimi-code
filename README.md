@@ -56,7 +56,6 @@ nix profile install github:noosxe/kimi-code
 |-------------------|-----------------|
 | `x86_64-linux`    | `linux-x64`     |
 | `aarch64-linux`   | `linux-arm64`   |
-| `x86_64-darwin`   | `darwin-x64`    |
 | `aarch64-darwin`  | `darwin-arm64`  |
 
 > **Note:** Alpine Linux / musl is **not** supported by the upstream binaries.

@@ -14,7 +14,7 @@
       };
     in
     flake-utils.lib.eachSystem
-      [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
+      [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ]
       (system:
         let
           pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
@@ -25,7 +25,6 @@
           platformMap = {
             "x86_64-linux"   = { platform = "linux-x64";    sha256 = "sha256-ppKMagikvqvuyhpDmFzsXBpfvok7j47UJ8fdjmfmOFA="; };
             "aarch64-linux"  = { platform = "linux-arm64";  sha256 = "sha256-QL3gBq8pxVl6mEV+218lAA54qP4zp1qxnnJMEJLMzKA="; };
-            "x86_64-darwin"  = { platform = "darwin-x64";   sha256 = "sha256-z/wOO9SllXJIRWu/7qPuCutUkLHxa0ClRZ9Js4ya/qo="; };
             "aarch64-darwin" = { platform = "darwin-arm64"; sha256 = "sha256-jyQD7dyCIp1Fk+DpuqLvnlE5AiHr/oLqp1dSHynEVPw="; };
           };
 
@@ -118,7 +117,7 @@
               description = "Kimi Code AI coding agent CLI (Moonshot AI)";
               homepage    = "https://kimi.com/code";
               license     = licenses.unfree;
-              platforms   = [ "x86_64-darwin" "aarch64-darwin" ];
+              platforms   = [ "aarch64-darwin" ];
               mainProgram = "kimi";
               sourceProvenance = [ sourceTypes.binaryNativeCode ];
             };
