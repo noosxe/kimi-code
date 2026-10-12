@@ -1,0 +1,43 @@
+name: Nix build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-x86_64-linux:
+    name: nix build (x86_64-linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v23
+
+      # Eval-only sanity across every system the flake declares (darwin
+      # outputs are evaluated, not built). Catches things like the
+      # x86_64-darwin eval throw we removed in #6.
+      - name: Flake check (eval, all systems)
+        run: nix flake check --all-systems
+
+      - name: Build kimi-code (x86_64-linux)
+        run: nix build .#packages.x86_64-linux.default --print-out-paths
+
+      # The packaged artifact is a Node.js SEA binary patched at build time
+      # (per-arch ELF interpreter + rpath, no wrapper/LD_LIBRARY_PATH — see
+      # #1/#2/#3). If the binary starts and reports its version on a plain
+      # Ubuntu runner, the interpreter, rpath, and SEA blob all survived.
+      - name: Smoke test
+        run: |
+          test -x ./result/bin/kimi
+          file ./result/bin/kimi | grep -qi ELF
+          ./result/bin/kimi --version
