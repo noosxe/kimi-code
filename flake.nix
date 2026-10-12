@@ -44,7 +44,10 @@
                 pkgs.stdenv.cc.cc.lib  # libstdc++.so.6, libgcc_s.so.1
                 pkgs.glibc             # libc.so.6, libdl.so.2, libm.so.6, libpthread.so.0
               ];
-              dynlinker = "${pkgs.glibc}/lib/ld-linux-x86-64.so.2";
+              # Per-architecture ELF interpreter from the same nixpkgs glibc:
+              #   x86_64-linux  -> ld-linux-x86-64.so.2
+              #   aarch64-linux -> ld-linux-aarch64.so.1
+              dynlinker = pkgs.stdenv.cc.bintools.dynamicLinker;
             in
             pkgs.stdenv.mkDerivation {
               pname = "kimi-code";
@@ -66,6 +69,13 @@
                 # Copy the binary (fetchurl output is read-only in the Nix store)
                 install -Dm755 "$src" "$out/bin/kimi"
                 chmod u+w "$out/bin/kimi"
+
+                # Fail loudly (instead of shipping a binary that cannot exec)
+                # if the interpreter path does not exist for this platform.
+                if [ ! -x "${dynlinker}" ]; then
+                  echo "kimi-code: dynamic linker not found at ${dynlinker}" >&2
+                  exit 1
+                fi
 
                 # Patch the ELF interpreter and rpath
                 patchelf \
